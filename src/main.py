@@ -57,16 +57,11 @@ def load_places(place_file: Path) -> Tuple[Dict[str, int], Dict[int, str]]:
                 ) from exc
 
             if not place_name:
-                # Names can be missing in Place.txt, but the file format guarantees
-                # two columns, so treat empty names as "null" placeholders.
                 place_name = "null"
 
-            # A place ID should be unique; if duplicates appear, we keep the first.
+            # A place ID should be unique; if duplicates appear, keep the first.
             if place_id not in id_to_name:
                 id_to_name[place_id] = place_name
-
-            # Place names may repeat (for example, multiple entries for similar names).
-            # We only record the first occurrence to keep lookups deterministic.
             name_to_id.setdefault(place_name, place_id)
 
     return name_to_id, id_to_name
@@ -142,7 +137,6 @@ def get_place_id(name_to_id: Dict[str, int], prompt_text: str) -> int:
     except KeyError as exc:
         raise KeyError(
             f"Place name {user_input!r} was not found. "
-            "Make sure you type it exactly as it appears in Place.txt."
         ) from exc
 
 
@@ -200,7 +194,7 @@ def reconstruct_path(prev: Dict[int, int], source: int, target: int) -> Optional
     while current != source:
         current = prev.get(current)
         if current is None:
-            # We lost the chain back to the source; treat as no path.
+            # if the chain is lost back to the source, treat as no path.
             return None
         path.append(current)
 
@@ -224,21 +218,12 @@ def find_edge(
 
 
 def main() -> None:
-    """Manual test harness for Phases 2–6."""
+    """Program entry point: load data, query user, run Dijkstra, and print the route."""
     try:
         name_to_id, id_to_name = load_places(DEFAULT_PLACE_FILE)
     except (FileNotFoundError, ValueError) as error:
         print(f"Failed to load places: {error}")
         return
-
-    print(f"Loaded {len(id_to_name)} place IDs with names.")
-    print(f"Unique place names stored: {len(name_to_id)}")
-
-    sample_items = list(name_to_id.items())[:5]
-    if sample_items:
-        print("Sample entries:")
-        for name, pid in sample_items:
-            print(f"  {name} -> {pid}")
 
     try:
         graph = load_graph(DEFAULT_ROAD_FILE)
@@ -246,23 +231,6 @@ def main() -> None:
         print(f"Failed to load roads: {error}")
         return
 
-    node_count = len(graph)
-    directed_edge_count = sum(len(neighbors) for neighbors in graph.values())
-    undirected_edges = directed_edge_count // 2
-
-    print(f"Graph contains {node_count} nodes with at least one incident road.")
-    print(f"Stored {directed_edge_count} directed edges (~{undirected_edges} undirected segments).")
-
-    # Display one sample node to verify the adjacency structure without flooding the console.
-    try:
-        sample_node, neighbors = next(iter(graph.items()))
-        print(f"Sample node {sample_node} has {len(neighbors)} neighbors.")
-    except StopIteration:
-        print("Graph appears to be empty.")
-        return
-
-    print()
-    print("You can now test name-to-ID resolution.")
     try:
         source_id = get_place_id(name_to_id, "Enter the Source Name: ")
         dest_id = get_place_id(name_to_id, "Enter the Destination Name: ")
@@ -284,7 +252,6 @@ def main() -> None:
     if best_distance == float("inf"):
         print(
             "No route found between the given places. "
-            "They may be in different disconnected components (e.g., mainland vs. Alaska/Hawaii)."
         )
         return
 
@@ -292,7 +259,6 @@ def main() -> None:
     if not path:
         print(
             "Dijkstra reported a finite distance but no path could be reconstructed. "
-            "This should not normally happen."
         )
         return
 
@@ -305,7 +271,6 @@ def main() -> None:
         if edge_info is None:
             print(
                 f"Warning: no edge data found from {from_id} to {to_id} "
-                "even though the path reconstruction included it."
             )
             continue
 
