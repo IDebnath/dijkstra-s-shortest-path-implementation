@@ -1,3 +1,23 @@
 venv/
-__pycache__
+.venv/
+__pycache__/
 *.pyc
+*.pyo
+*.pyd
+
+# IDE / editor settings
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment / tooling caches
+.env
+.env.*
+.mypy_cache/
+.pytest_cache/
+
+# Local helper docs (not needed on GitHub)
+README_workflow.md
+README_explained.md
+README_assignment.md
